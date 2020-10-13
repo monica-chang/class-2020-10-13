@@ -32,16 +32,26 @@ We are learning about sampling this week. We are taking the theory of Chapter 5 
 
 **Prompt:** Without using rep_sample_n(), sample 30 beads at random from the urn five times. The resulting tibble should have two columns: `replicate` (with a value of 1 to 5) and `samp` (a list column in which each item is a tibble with 30 rows sampled, with replacement, from `urn`). Each tibble in `samp` will have the same two columns as `urn`. Hint: `sample_n()` is a very handy function. It will sample a random selection of rows from a tibble which you pass it. Also, use `str()` and `view()` interactively to confirm that your oject looks the way you want.
 
-
+```{r sc1}
+random <- tibble(replicate = 1:5, 
+                 samp      = map(replicate, ~ sample_n(urn, size = 30, replace = TRUE)))
+```
 
 
 ## Scene 2
 
 **Prompt:** What is the probability that, if you sample 50 beads at random, there will be more red than blue beads in the sample?
 
+```{r sc2}
+random_50 <- tibble(replicate = 1:1000, 
+            samp      = map(replicate, ~ sample_n(urn, size = 50, replace = TRUE)),
+            num_red   = map_int(samp, ~ sum(.$color == "red")),
+            num_blue  = map_int(samp, ~ sum(.$color == "blue")),
+            more_red  = num_red > num_blue,
+            more_red2 = map_lgl(samp, ~ (sum(.$color == "red") > sum(.$color == "blue"))))
 
-
-
+sum(random_50$more_red)/nrow(random_50)
+```
 
 ## Scene 3
 
@@ -51,6 +61,19 @@ Interpret the meaning of the graphic.
 
 Hint: Review the use of `rbinom()`, especially the `n`, `size` and `prob` arguments, from Chapter 2. Start by creating a tibble with one row. In that row, we assume that there are truly 100 red beads. Draw, in that case, from `rbinom()`, with the appropriate arguments, to see how many red beads we might draw in that case. Call that variable `numb_red`. But that is just one draw! Now make a tibble with two such rows. `map_int()` is a nice tool. See the pattern? We just need a tibble with lots of rows, each one indicating both the "true" number of red beads, and then the number we draw with our paddle. But each value of the true number of red beads needs more than one row, otherwise we won't have enough data to describe the full joint distribution.
 
+```{r sc3}
+x <- tibble(numb_red = 1:100) %>%
+  mutate(red_paddle = map_int(numb_red, ~ rbinom(n = 1,
+                                                 size = 25, 
+                                                 prob = ./1000)))
+
+x %>%
+  ggplot(aes(y = numb_red, x = red_paddle)) +
+  geom_point(alpha = 0.01) +
+  labs(title = "Joint Distribution of Red Beads in Paddle and in Urn",
+       x = "Number of Red Beads in Paddle",
+       y = "Number of Red Beads in Urn")
+```
 
 
 
